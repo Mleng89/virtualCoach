@@ -1,13 +1,32 @@
 const path = require('path');
 const HtmlWebPackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
-
+const fs = require('fs');
 // Instantiate the plugin.
 /* The `template` property defines the source of a template file
 that this plugin will use. We will create it later at the bottom. */
 const htmlPlugin = new HtmlWebPackPlugin({
     template: './src/index.html'
 });
+
+const getFilesAndDirectories = source =>
+    fs.readdirSync(source, { withFileTypes: true }).map(dirent => dirent.name);
+const absoluteImports = {};
+
+const srcPath = subdir => path.join(__dirname, 'src', subdir);
+getFilesAndDirectories('src').forEach(fileName => {
+    const fileNameWithoutExtension = path.parse(fileName).name;
+    absoluteImports[`web/${fileNameWithoutExtension}`] = srcPath(fileName);
+});
+
+const serverPath = subdir => path.join(__dirname, 'server', subdir);
+getFilesAndDirectories('server').forEach(fileName => {
+    const fileNameWithoutExtension = path.parse(fileName).name;
+    absoluteImports[`server/${fileNameWithoutExtension}`] =
+        serverPath(fileName);
+});
+
+console.log('absoluteImports', absoluteImports);
 
 module.exports = {
     // Our application's entry point.
@@ -29,7 +48,10 @@ module.exports = {
 
     /* Telling webpack which extensions we are going to be using.*/
     resolve: {
-        extensions: ['.tsx', '.ts', '.js']
+        extensions: ['.tsx', '.ts', '.js'],
+        alias: {
+            ...absoluteImports
+        }
     },
 
     /* This is what file name should be used for the result file, and where it should be palced.*/
